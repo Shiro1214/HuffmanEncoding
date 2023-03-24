@@ -4,8 +4,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>	
-#include <bits.h>
-#include <bitset>
 #include <vector>
 #include "Node.h"
 #include <chrono>
@@ -62,9 +60,14 @@ void sort(int p, int r, vector<Node*> &tree) {
 
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
-	
+
+	/*
+	======									======
+	======			File Type Check			======		
+	======									======
+	*/
 	if (argc != 2) {
 		cout << "Please input plain text file path!" << endl;
 		exit(0);
@@ -72,8 +75,8 @@ int main(int argc, char** argv)
 	else { //type check
 		string plainText = argv[1];
 		int txtLen = plainText.length();
-		string txt = ".txt"; 
-		string fileType = plainText.substr(txtLen-4,4);
+		string txt = ".txt";
+		string fileType = plainText.substr(txtLen - 4, 4);
 
 		if (fileType != txt) {
 			cout << "Input .txt file!" << endl;
@@ -81,15 +84,23 @@ int main(int argc, char** argv)
 		}
 	}
 
-
+	/*
+	======									======
+	======	 Reading File/ Counting Freqs	======
+	======									======
+*/
 	ifstream ifs;
 	ifs.open(argv[1], ios::binary);
 
+	//TIME START
 	double totalTimeTaken = 0;
 	clock_t tStart = clock();
-	cout << "Generating frequency . . .";
-	int freq[256] = { 0 };
 
+	cout << "Generating frequency . . .";
+
+	int freq[256] = { 0 }; //ASCII Table
+
+	//READING FILE
 	string wholetext;
 	ifs.seekg(0, ios::end);
 	wholetext.reserve(ifs.tellg());
@@ -97,25 +108,35 @@ int main(int argc, char** argv)
 
 	wholetext.assign((std::istreambuf_iterator<char>(ifs)),
 		std::istreambuf_iterator<char>());
-	
-	/*file.seekg(0, file.end);
-string fileContents(file.tellg(), 0);
-file.seekg(0);
-file.read(fileContents.data(), fileContents.size());*/
 
-
+	//Counting Freqs
 	for (char ch : wholetext) {
 		int ascii = ch;
 		++freq[ascii];
-
 	}
 
-
 	ifs.close();
+	double duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+	totalTimeTaken += duration;
+	cout << (" %.3fs\n", duration) << "s" << endl;
 
+	/*
+		======									======
+		======	 Generating Huffman Tree		======
+		======									======
+*/
+
+
+	cout << "Building Huffman Tree . . .";
+	tStart = clock();
+
+	string ch;
+	ch.reserve(7);
+
+	// Creating Nodes 
 	for (int i = 0; i < 256; i++) {
 		if (freq[i] > 0) {
-			string ch;
+
 			if (i == 32) {
 				ch = SPACE;
 			}
@@ -130,19 +151,10 @@ file.read(fileContents.data(), fileContents.size());*/
 
 	}
 
-	double duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-	totalTimeTaken += duration;
-	cout << (" %.3fs\n", duration) << "s" << endl;
-	//cout << "reading freqs done" << endl;
-
-
-	cout << "Building Huffman Tree . . .";
-	tStart = clock();
-
-	sort(0, nodes.size() - 1,nodes);
-	vector<Node*> tree(nodes);
-
-	while (tree.size() > 1) {
+	sort(0, nodes.size() - 1,nodes);  //Sort nodes
+	
+	vector<Node*> tree(nodes);	//Creating Tree
+	while (tree.size() > 1) {   
 		Node* n1 = tree[0];
 		Node* n2 = tree[1];
 
@@ -159,34 +171,33 @@ file.read(fileContents.data(), fileContents.size());*/
 		tree.push_back(p);
 		sort(0, tree.size() - 1,tree);
 	}
-	//cout << "tree done" << endl;
 	Node* root = tree[0];
 	
 	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
 	cout << (" %.3fs\n", duration) << "s" << endl;
 
+	/*
+	======									======
+	======	 Encoding the documents 		======
+	======									======
+*/
 
 	cout << "Encoding the documents . . .";
 	tStart = clock();
+	
+	//Generating prefix code for each node
 	for (auto n : nodes) {
 		auto x = n;
 		while (x != root) {
 			if (x->isLeftChild()) { //1011
 				n->prefixCode = "0" + n->prefixCode;       // 0
-				//output <<= 1;
 			}
 			else if (x->isRightChild()) {
 				n->prefixCode = "1" + n->prefixCode;       //001 | 010 -> 011, 0110 | 1000
 				
-				//output |= (1 << bitCount);
 			}
-			//if (bitCount == 8) {
-			//	ofs << output;
-			//	output = 0;
-			//	bitCount = 0;
-			//}
-			//bitCount++;
+
 			x = x->parent;
 		}
 	}
@@ -196,6 +207,11 @@ file.read(fileContents.data(), fileContents.size());*/
 	totalTimeTaken += duration;
 	cout << (" %.3fs\n", duration) << "s" << endl;
 
+	/*
+	======									======
+	======			Outputing File			======
+	======									======
+*/
 
 
 	//output path
@@ -204,53 +220,57 @@ file.read(fileContents.data(), fileContents.size());*/
 	string shortPath = ofspath.substr(ofspath.find_last_of("/\\") + 1); //base_name(ofspath);
 
 
-	ofstream ofs(ofspath, ios::binary); //write the correct byte! very important
+	ofstream ofs(ofspath, ios::out|ios::binary); //write the correct byte! very important
 
 
 	cout << "Outputing to file . . .";
 
 	tStart = clock();
 
-	
-
-	for (auto n : nodes) { //nodes
+	//nodes prefixes
+	for (auto n : nodes) { 
 		ofs << n->toString() << endl;
 	}
 	ofs << "*****" << endl;
 
-	long totalBits = 0;
-	for (auto n : nodes) { //nodes
+	long totalBits = 0; //Totalbits
+	for (auto n : nodes) { 
 		totalBits += n->getTotalBits();
 	}
 
 	
 	ofs << totalBits << endl;
-	
-	cout << "done before raw bytes ..." << endl;
 
-	unordered_map<string, Node*> stringToNodesTable;
+
+	//Outputing RAW BYTES
+
+	unordered_map<char, Node*> stringToNodesTable; //BUILDING HASH
 	for (auto n : nodes) {
-		stringToNodesTable[n -> label] = n;
-		/*
-		stringToNodesTable.insert({ n->label, n });*/
+		if (n->label == NEWLINE) {
+			stringToNodesTable[10] = n;
+		}
+		else if (n->label == SPACE) {
+			stringToNodesTable[32] = n;
+		}
+		else if (n->label == RETURN) {
+			stringToNodesTable[13] = n;
+		}
+		else if (n->label == TAB) {
+			stringToNodesTable[9] = n;
+		}
+		else
+		stringToNodesTable[n -> label[0]] = n;
 	}
-	//cout << nodes.size() << endl;
-	/*string encoding;
-	encoding.reserve(totalBits + totalBits%8);*/
 
-	cout << "wholetext len : " << wholetext.length() << endl;
 
-	uint8_t output = 0; 
-	int bitCount = 0;
+	int bitCount = 0; //Track of number of bits
+	uint8_t output = 0b0;
+	string byteString;
+	byteString.reserve(totalBits + totalBits % 8);
+
 	for (auto &c : wholetext) {
-		string label = "";
-		if (c == 32) label = SPACE;
-		else if (c == 10) label = NEWLINE;
-		else if (c == 13) label = RETURN;
-		else if (c == 9) label = TAB;
-		else label += c;
 
-		Node* n = stringToNodesTable[label];
+		Node* n = stringToNodesTable[c];
 		if (n != nullptr) {
 			for (char &ch : n->prefixCode) {
 				output <<= 1;
@@ -258,8 +278,8 @@ file.read(fileContents.data(), fileContents.size());*/
 				bitCount++;
 				//Write out if 1 byte completed, reset
 				if (bitCount == 8) {
-					ofs << output;
-					output = 0;
+					byteString += output;
+					output = 0b0;
 					bitCount = 0;
 				}
 			}
@@ -268,11 +288,12 @@ file.read(fileContents.data(), fileContents.size());*/
 	}
 	//in case not enough bits
 	if (bitCount % 8 != 0) {
-		output *= pow(2,8 - bitCount);
-		ofs << output;
+		output <<= 8 - bitCount; //adds more 0 at the end
+		byteString += output;
 	}
 	
-	ofs.close();
+	ofs << byteString;
+	
 
 	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
@@ -280,58 +301,6 @@ file.read(fileContents.data(), fileContents.size());*/
 
 	cout << "Wrote out put to file : " << shortPath << endl;
 	cout << "Total time : . . . "<<totalTimeTaken << "s" << endl;
+
+	ofs.close();
 }
-
-
-
-
-//Incase amount of bits not divisible by 8
-//if (totalBits % 8 != 0) {
-//	for (int i = 0; i < totalBits % 8; i++) {
-//		encoding += '0';
-//		//encoding.insert(e, 1, '0');
-//		//e++;
-//	}
-
-//}
-
-//for (char ch : encoding) {
-//	output <<= 1;
-//	if (ch != '0') output |= 1;
-//	bitCount++;
-//	if (bitCount == 8) {
-//		ofs << output;
-//		output = 0;
-//		bitCount = 0;
-//	}
-//}
-
-
-
-/*
-	//Incase amount of bits not divisible by 8
-	if (totalBits % 8 != 0) {
-		for (int i = 0; i < totalBits % 8; i++) {
-			encoding += '0';
-			//encoding.insert(e, 1, '0');
-			//e++;
-		}
-
-	}
-	cout << "encoding is done ... " << endl;
-	bitset<totalBits + totalBits % 8> testBits(encoding);
-	//output binary string
-	int num_bytes = (totalBits + 7) / 8; // calculate number of bytes
-	//cout << num_bytes << endl;
-	for (int i = 0; i < num_bytes; i++) {
-		string byte_str = encoding.substr(i * 8, 8); // extract next 8 bits
-		//cout << &byte_str << " : byteStr mem" << endl;
-		bitset<8> bits(byte_str); //sizeofbits fixed set to 4bytes (1-32bits)
-		//for (int j = 0; j < 8; j++) {
-		//	bits[j] = encoding[(i * 8) + j];
-		//}
-		//if (i == num_bytes - 1)
-			//cout << "This is the last bit string which shouldnt have been complete: " << byte_str << endl;
-		ofs.write(reinterpret_cast<const char*>(&bits), 1); // Write bitset to file
-	}
-	*/

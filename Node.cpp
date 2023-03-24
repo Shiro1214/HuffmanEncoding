@@ -6,7 +6,7 @@ Node::Node(string label) {
 	leftC = nullptr;
 	rightC = nullptr;
 	parent = nullptr;
-	prefixCode = "";
+	prefixCode.reserve(32);
 	freqs = 0;
 }
 
@@ -15,7 +15,7 @@ Node::Node(string label,int freqs) {
 	leftC = nullptr;
 	rightC = nullptr;
 	parent = nullptr;
-	prefixCode = "";
+	prefixCode.reserve(32);
 	this->freqs = freqs;
 
 }
