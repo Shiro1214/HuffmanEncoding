@@ -20,7 +20,6 @@ string SPACE = "space";
 string NEWLINE = "newline";
 string TAB = "tab";
 string RETURN = "return";
-
 int partition(int p, int r, vector<Node*>& tree) {
 	auto x = tree.at(r);
 	
@@ -60,6 +59,8 @@ void sort(int p, int r, vector<Node*> &tree) {
 
 }
 
+//Node* findNodeByName(string& )
+
 int main(int argc, char** argv)
 {
 
@@ -90,35 +91,43 @@ int main(int argc, char** argv)
 	======									======
 */
 	ifstream ifs;
-	ifs.open(argv[1], ios::binary);
+	ifs.open(argv[1], ios::in|ios::binary);
 
 	//TIME START
 	double totalTimeTaken = 0;
 	clock_t tStart = clock();
 
-	cout << "Generating frequency . . .";
-
-	int freq[256] = { 0 }; //ASCII Table
+	cout << "Reading file . . .";
 
 	//READING FILE
-	string wholetext;
-	ifs.seekg(0, ios::end);
-	wholetext.reserve(ifs.tellg());
-	ifs.seekg(0, ios::beg);
+	// Get the file size
+	ifs.seekg(0, std::ios::end);
+	size_t size = ifs.tellg();
+	ifs.seekg(0, std::ios::beg);
 
-	wholetext.assign((std::istreambuf_iterator<char>(ifs)),
-		std::istreambuf_iterator<char>());
+	string wholetext(size,'\0');
+	ifs.read(&wholetext[0], size);
+
+	double duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+	totalTimeTaken += duration;
+	cout << (" %.5fs\n", duration) << "s" << endl;
+
+
+	cout << "Generating frequency . . .";
+	tStart = clock();
 
 	//Counting Freqs
+	int freq[256] = { 0 }; //ASCII Table
+
 	for (char ch : wholetext) {
 		int ascii = ch;
 		++freq[ascii];
 	}
 
 	ifs.close();
-	double duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
-	cout << (" %.3fs\n", duration) << "s" << endl;
+	cout << (" %.5fs\n", duration) << "s" << endl;
 
 	/*
 		======									======
@@ -151,7 +160,7 @@ int main(int argc, char** argv)
 
 	}
 
-	sort(0, nodes.size() - 1,nodes);  //Sort nodes
+	sort(0, nodes.size() - 1,nodes);  //Sort nodes nlogn
 	
 	vector<Node*> tree(nodes);	//Creating Tree
 	while (tree.size() > 1) {   
@@ -159,8 +168,8 @@ int main(int argc, char** argv)
 		Node* n2 = tree[1];
 
 		int pFreq = n1->freqs + n2->freqs;
-		string newLabel = to_string(pFreq);
-		Node* p = new Node(newLabel,pFreq);
+		//string newLabel = to_string(pFreq);
+		Node* p = new Node(to_string(pFreq),pFreq);
 		p->leftC = n1;
 		p->rightC = n2;
 		n1->parent = p;
@@ -175,7 +184,7 @@ int main(int argc, char** argv)
 	
 	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
-	cout << (" %.3fs\n", duration) << "s" << endl;
+	cout << (" %.5fs\n", duration) << "s" << endl;
 
 	/*
 	======									======
@@ -191,10 +200,10 @@ int main(int argc, char** argv)
 		auto x = n;
 		while (x != root) {
 			if (x->isLeftChild()) { //1011
-				n->prefixCode = "0" + n->prefixCode;       // 0
+				n->prefixCode = '0' + n->prefixCode;       // 0
 			}
 			else if (x->isRightChild()) {
-				n->prefixCode = "1" + n->prefixCode;       //001 | 010 -> 011, 0110 | 1000
+				n->prefixCode = '1' + n->prefixCode;       //001 | 010 -> 011, 0110 | 1000
 				
 			}
 
@@ -205,11 +214,11 @@ int main(int argc, char** argv)
 
 	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
-	cout << (" %.3fs\n", duration) << "s" << endl;
+	cout << (" %.5fs\n", duration) << "s" << endl;
 
 	/*
 	======									======
-	======			Outputing File			======
+	======			Outputing File			======   
 	======									======
 */
 
@@ -220,7 +229,7 @@ int main(int argc, char** argv)
 	string shortPath = ofspath.substr(ofspath.find_last_of("/\\") + 1); //base_name(ofspath);
 
 
-	ofstream ofs(ofspath, ios::out|ios::binary); //write the correct byte! very important
+	ofstream ofs(ofspath, ios::binary); //write the correct byte! very important
 
 
 	cout << "Outputing to file . . .";
@@ -244,7 +253,7 @@ int main(int argc, char** argv)
 
 	//Outputing RAW BYTES
 
-	unordered_map<char, Node*> stringToNodesTable; //BUILDING HASH
+	vector<Node*> stringToNodesTable(256, nullptr);
 	for (auto n : nodes) {
 		if (n->label == NEWLINE) {
 			stringToNodesTable[10] = n;
@@ -267,6 +276,7 @@ int main(int argc, char** argv)
 	uint8_t output = 0b0;
 	string byteString;
 	byteString.reserve(totalBits + totalBits % 8);
+
 
 	for (auto &c : wholetext) {
 
@@ -297,7 +307,7 @@ int main(int argc, char** argv)
 
 	duration = (double)(clock() - tStart) / CLOCKS_PER_SEC;
 	totalTimeTaken += duration;
-	cout << (" %.3fs\n", duration) << "s" << endl;
+	cout << (" %.5fs\n", duration) << "s" << endl;
 
 	cout << "Wrote out put to file : " << shortPath << endl;
 	cout << "Total time : . . . "<<totalTimeTaken << "s" << endl;
